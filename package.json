@@ -1,0 +1,32 @@
+{
+  "name": "everyauth-oauth2",
+  "version": "0.0.0",
+  "description": "OAuth2 plugin for everyauth",
+  "main": "index.js",
+  "dependencies": {
+    "oauth": "0.9.x",
+    "request": "2.39.x"
+  },
+  "peerDependencies": {
+    "everyauth": "0.5.x"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/everyauth/oauth2"
+  },
+  "keywords": [
+    "everyauth",
+    "oauth2",
+    "login",
+    "auth"
+  ],
+  "author": "Brian N Noguchi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/everyauth/oauth2/issues"
+  },
+  "homepage": "https://github.com/everyauth/oauth2"
+}
