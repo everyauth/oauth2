@@ -7,7 +7,7 @@ var util = require('util');
 exports = module.exports = function (everyauth) {
   var oauth2 = everyauth.oauth2 =
   everyauth.everymodule.submodule('oauth2')
-  .once('setup', function (module) {
+  .on('setup', function (module) {
     module.oauth = new OAuth(module._appId, module._appSecret, module._oauthHost, module._authPath, module._accessTokenPath, module._customHeaders);
   })
   .configurable({
