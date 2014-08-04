@@ -80,15 +80,15 @@ exports = module.exports = function (everyauth) {
     }
 
     var params = {
-            client_id: this._appId
-          , redirect_uri: this._myHostname + this._callbackPath
-        }
-      , authPath = this._authPath
-      , url = (/^http/.test(authPath))
+        client_id: this._appId
+      , redirect_uri: this._myHostname + this._callbackPath
+    };
+    var authPath = this._authPath
+    var url = (/^http/.test(authPath))
             ? authPath
-            : (this._oauthHost + authPath)
-      , additionalParams = this.moreAuthQueryParams
-      , param;
+            : (this._oauthHost + authPath);
+    var additionalParams = this.moreAuthQueryParams;
+    var param;
 
     if (additionalParams) for (var k in additionalParams) {
       param = additionalParams[k];
@@ -107,7 +107,11 @@ exports = module.exports = function (everyauth) {
         // }
         param = param.call(this, req, res);
       }
-      params[k] = param;
+      if (('undefined' === typeof param) || (param === null)) {
+        delete params[k];
+      } else {
+        params[k] = param;
+      }
     }
     return url + '?' + querystring.stringify(params);
   })
@@ -117,11 +121,11 @@ exports = module.exports = function (everyauth) {
   .getCode( function (req, res, next) {
     var parsedUrl = url.parse(req.url, true);
     if (this._authCallbackDidErr(req)) {
-      return next(new this.AuthCallbackError(req));
+      return this.halt(next(new this.AuthCallbackError(req)));
     }
     if (!parsedUrl.query || !parsedUrl.query.code) {
       console.error("Missing code in querystring. The url looks like " + req.url);
-      return next(new AuthCallbackError(req));
+      return this.halt(next(new AuthCallbackError(req)));
     }
     return parsedUrl.query && parsedUrl.query.code;
   })
@@ -171,14 +175,17 @@ exports = module.exports = function (everyauth) {
         throw new Error('postAccessTokenParamsVia must be either "query" or "data"');
     }
     opts[paramsVia] = params;
-    request[this._accessTokenHttpMethod](opts, function (err, res, body) {
+    var method = this._accessTokenHttpMethod;
+    request[method](opts, function (err, res, body) {
       if (err) {
         err.extra = {data: body, res: res};
         return p.fail(err);
       }
-      if (parseInt(res.statusCode / 100) != 2) return p.fail({extra: {res: res, data: body}});
-      var resType = res.headers['content-type']
-        , data;
+      if (parseInt(res.statusCode / 100) != 2) {
+        return p.fail(new AccessTokenError(res, body));
+      }
+      var resType = res.headers['content-type'];
+      var data;
       if (resType.substring(0, 10) === 'text/plain') {
         data = querystring.parse(body);
       } else if (resType.substring(0, 33) === 'application/x-www-form-urlencoded') {
@@ -238,7 +245,6 @@ exports = module.exports = function (everyauth) {
 
     var redirectTo = this._redirectPath;
     if (redirectTo) {
-      console.log("REDIRECT TO", redirectTo);
       this.redirect(res, redirectTo);
     } else {
       data.next();
@@ -269,8 +275,9 @@ exports = module.exports = function (everyauth) {
       }
       return this;
     }
-    if (val)
+    if (val) {
       this.moreAuthQueryParams[key] = val;
+    }
     return this;
   };
 
@@ -283,8 +290,9 @@ exports = module.exports = function (everyauth) {
       }
       return this;
     }
-    if (val)
+    if (val) {
       this.moreAccessTokenParams[key] = val;
+    }
     return this;
   };
 
@@ -304,16 +312,31 @@ exports = module.exports = function (everyauth) {
     }
   };
 
+  // You can customize the error by over-riding this at the submodule level
+  //
+  //     everyauth.facebook.AuthCallbackError = FbAuthCallbackError;
+  //
   oauth2.AuthCallbackError = AuthCallbackError;
+
+  oauth2.AccessTokenError = AccessTokenError;
 
   return oauth2;
 };
 
 function AuthCallbackError (req) {
+  Error.call(this);
+  Error.captureStackTrace(this, arguments.callee);
   this.name = 'AuthCallbackError';
-  this.message = ''; // TODO req -> error message
-  this.stack = (new Error).stack;
-  // TODO Maybe make it easier to customize error message
+  this.message = '';
+  this.req = req;
 }
-
 util.inherits(AuthCallbackError, Error);
+
+function AccessTokenError (res, body) {
+  Error.call(this);
+  Error.captureStackTrace(this, arguments.callee);
+  this.name = 'AccessTokenError'
+  var req = res.req;
+  this.message = res.statusCode + ": " + req.method + " " + req.path + "\n" + body
+}
+util.inherits(AccessTokenError, Error);
