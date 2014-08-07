@@ -192,6 +192,8 @@ exports = module.exports = function (everyauth) {
         data = querystring.parse(body);
       } else if (resType.substring(0, 16) === 'application/json') {
         data = JSON.parse(body);
+      } else if (resType.substring(0, 15) === 'text/javascript') {
+        data = JSON.parse(body);
       } else {
         throw new Error('Unsupported content-type ' + resType);
       }
